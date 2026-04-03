@@ -1,0 +1,59 @@
+[package]
+name = "tokenforge"
+version = "0.1.0"
+edition = "2021"
+description = "TokenForge — Full-stack LLM token optimization engine"
+license = "MIT"
+
+[[bin]]
+name = "tokenforge"
+path = "src/main.rs"
+
+[lib]
+name = "tokenforge"
+path = "src/lib.rs"
+
+[dependencies]
+# AST parsing
+tree-sitter = "0.24"
+
+# SQLite
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Parallelism
+rayon = "1.8"
+
+# Text processing
+regex = "1"
+
+# Compression (storage)
+zstd = "0.13"
+
+# Token counting
+tiktoken-rs = "0.6"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Hashing
+blake3 = "1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true

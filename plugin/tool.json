@@ -1,0 +1,69 @@
+{
+  "name": "tokenforge",
+  "description": "TokenForge — Full-stack LLM token optimization engine. Compresses code, command output, conversation, JSON, and MCP schemas with AST-aware intelligence.",
+  "tools": [
+    {
+      "name": "tokenforge_stats",
+      "description": "Show compression statistics for the current or specified session. Returns total tokens processed, tokens saved, savings percentage, and per-content-type breakdown.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": "string",
+            "description": "Session ID to query (default: current)"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["text", "json"],
+            "description": "Output format (default: json)"
+          }
+        }
+      }
+    },
+    {
+      "name": "tokenforge_expand",
+      "description": "Retrieve the full original content by its blake3 hash. Use this when compressed output has lost information you need — the original is stored losslessly in SQLite with zstd compression.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "Blake3 hash of the original content"
+          }
+        },
+        "required": ["hash"]
+      }
+    },
+    {
+      "name": "tokenforge_budget",
+      "description": "View or set per-category token budgets. Categories: conversation, tool_output, code_context, mcp_schema. Budgets auto-adjust based on session type.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Set total token budget"
+          },
+          "show": {
+            "type": "boolean",
+            "description": "Show current budget allocation"
+          }
+        }
+      }
+    },
+    {
+      "name": "tokenforge_expand_tool",
+      "description": "Retrieve the full MCP tool schema by tool name. When MCP schemas are compressed to save tokens, use this to get the complete input_schema for a specific tool on demand.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "tool_name": {
+            "type": "string",
+            "description": "Name of the MCP tool to expand"
+          }
+        },
+        "required": ["tool_name"]
+      }
+    }
+  ]
+}

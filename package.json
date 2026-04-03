@@ -1,0 +1,42 @@
+{
+  "name": "@masyv/tokenforge",
+  "version": "0.1.0",
+  "description": "TokenForge — Full-stack LLM token optimization engine. Compresses code, command output, conversation, JSON, and MCP schemas with AST-aware intelligence.",
+  "main": "index.js",
+  "bin": {},
+  "scripts": {
+    "build": "./scripts/build.sh",
+    "install-bin": "./scripts/install.sh"
+  },
+  "keywords": [
+    "llm",
+    "token",
+    "compression",
+    "optimization",
+    "claude",
+    "claude-code",
+    "context-window",
+    "ast",
+    "tree-sitter",
+    "mcp",
+    "hook",
+    "plugin"
+  ],
+  "author": "masyv",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Manavarya09/tokenforge"
+  },
+  "homepage": "https://github.com/Manavarya09/tokenforge#readme",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "plugin/",
+    "hooks/",
+    "skills/",
+    "scripts/",
+    "core/src/",
+    "core/Cargo.toml"
+  ]
+}
