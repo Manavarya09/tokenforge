@@ -1,5 +1,6 @@
 pub mod code;
 pub mod conversation;
+pub mod diff;
 pub mod json;
 pub mod mcp;
 pub mod output;

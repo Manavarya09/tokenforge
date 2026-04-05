@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use tokenforge::{
-    CompressionLevel, ContentType, Engine, HookInput, Language,
+    bench, mcp_server, setup, CompressionLevel, ContentType, Engine, HookInput, Language,
 };
 
 #[derive(Parser)]
@@ -113,6 +113,23 @@ enum Commands {
     Expand {
         /// Content hash
         hash: String,
+    },
+
+    /// Run as MCP server over stdio (JSON-RPC 2.0)
+    Serve,
+
+    /// Auto-install PostToolUse hook into ~/.claude/settings.json
+    Setup {
+        /// Print what would change without writing
+        #[arg(long)]
+        dry_run: bool,
+    },
+
+    /// Benchmark all compression engines with real metrics
+    Bench {
+        /// Compression level to benchmark
+        #[arg(long, default_value = "medium", value_parser = parse_level)]
+        level: CompressionLevel,
     },
 }
 
@@ -318,6 +335,42 @@ fn main() -> Result<()> {
             let engine = Engine::new(db_path);
             let original = engine.expand(&hash)?;
             print!("{original}");
+        }
+
+        Commands::Serve => {
+            let server = mcp_server::McpServer::new(db_path);
+            server.run()?;
+        }
+
+        Commands::Setup { dry_run } => {
+            let report = setup::run_setup(dry_run)?;
+            if cli.json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                println!("{}", report.message);
+                if !report.already_configured {
+                    println!();
+                    println!("  Settings: {}", report.settings_path);
+                    println!("  Command:  {}", report.hook_command);
+                }
+            }
+        }
+
+        Commands::Bench { level } => {
+            let results = bench::run_bench(&db_path, level)?;
+            if cli.json {
+                println!("{}", serde_json::to_string_pretty(&results)?);
+            } else {
+                print!("{}", bench::format_table(&results));
+                let total_saved: usize = results.iter().map(|r| r.tokens_saved).sum();
+                let avg_savings: f64 = results.iter().map(|r| r.savings_pct).sum::<f64>()
+                    / results.len() as f64;
+                println!(
+                    "  Total tokens saved across all engines: {}  |  Avg savings: {:.1}%",
+                    total_saved, avg_savings
+                );
+                println!();
+            }
         }
     }
 

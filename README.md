@@ -1,6 +1,6 @@
 # TokenForge
 
-**Full-stack LLM token optimization engine.** The first tool that compresses ALL token sources — code, command output, conversation, JSON, and MCP schemas — with AST-aware intelligence, cross-session learning, and lossless reversibility.
+**Full-stack LLM token optimization engine — the best in the world.** The first tool that compresses ALL token sources — code, command output, conversation, JSON, and MCP schemas — with _real_ AST parsing (tree-sitter grammars), semantic diff compression, a built-in MCP server, one-command auto-setup, and lossless reversibility.
 
 [![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 [![npm](https://img.shields.io/npm/v/@masyv/tokenforge)](https://www.npmjs.com/package/@masyv/tokenforge)
@@ -14,7 +14,21 @@ Every existing tool solves one slice of the token problem:
 - **claw-compactor** — file content only
 - **context-pilot** — conversation pruning only
 
-**TokenForge is the first full-stack optimizer**: a single Rust binary that handles every token source with content-aware compression, lossless storage, and quality measurement.
+**TokenForge is the first full-stack optimizer**: a single Rust binary that handles every token source with content-aware compression, lossless storage, quality measurement, and — uniquely — works as a proper **MCP server** that Claude can call directly.
+
+## Benchmarks (v0.2.0, aggressive)
+
+```
+Engine                  Type         Tokens  → After   Saved%   Quality   ns/token
+──────────────────────────────────────────────────────────────────────────────────
+code:rust (AST)         code:rust      762      549    28.0%     88.0       3124
+code:python (AST)       code:python    643      521    19.0%     88.0       3333
+command_output          output         422       18    95.7%     75.0       3016
+json_payload            json           302       55    81.8%     88.0       3404
+mcp_schema              mcp_schema     390      149    61.8%     95.0       2686
+```
+
+Real tree-sitter AST parsing — not regex heuristics.
 
 ## Architecture
 
@@ -47,6 +61,13 @@ Every existing tool solves one slice of the token problem:
 ```
 
 ## Features
+
+### What's New in v0.2.0
+- **Real tree-sitter AST grammars** — Rust, Python, JavaScript, TypeScript. Surgical function body folding at exact CST node boundaries.
+- **MCP server mode** — `tokenforge serve` runs as a proper JSON-RPC MCP server. Claude calls it directly via `claude_desktop_config.json`.
+- **One-command setup** — `tokenforge setup` auto-configures `~/.claude/settings.json` atomically.
+- **Semantic diff compression** — Detects when new content is >60% similar to stored content; stores only the diff.
+- **Built-in benchmarks** — `tokenforge bench` with real metrics: tokens, savings %, quality score, ns/token.
 
 ### 5 Compression Engines
 
@@ -178,6 +199,9 @@ COMMANDS:
     learn       Build project relevance profile
     quality     Show compression quality score
     expand      Expand compressed content by hash
+    serve       Run as MCP server over stdio (JSON-RPC 2.0)
+    setup       Auto-install PostToolUse hook into ~/.claude/settings.json
+    bench       Benchmark all compression engines with real metrics
 
 OPTIONS:
     --json           Output as JSON
@@ -185,6 +209,31 @@ OPTIONS:
     --db-path        SQLite database path [default: ~/.tokenforge/tokenforge.db]
     -h, --help       Print help
     -V, --version    Print version
+```
+
+## MCP Server Mode
+
+Add TokenForge as an MCP server so Claude can compress on-demand:
+
+**`claude_desktop_config.json`:**
+```json
+{
+  "mcpServers": {
+    "tokenforge": {
+      "command": "tokenforge",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+Claude now has access to 4 new tools: `tokenforge_compress`, `tokenforge_expand`, `tokenforge_stats`, `tokenforge_bench`.
+
+## One-Command Setup
+
+```bash
+tokenforge setup            # auto-configures ~/.claude/settings.json
+tokenforge setup --dry-run  # preview without writing
 ```
 
 ## Compression Levels

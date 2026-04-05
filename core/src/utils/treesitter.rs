@@ -1,27 +1,21 @@
 use crate::Language;
 use anyhow::{Context, Result};
 
-/// Get the tree-sitter language grammar for a given language.
-/// Returns None for languages without compiled grammars.
+/// Get the compiled tree-sitter language grammar for a given language.
+/// Returns None for languages without linked grammars.
 pub fn get_language(lang: Language) -> Option<tree_sitter::Language> {
-    // Tree-sitter grammars must be compiled and linked.
-    // For now we provide a trait-based extension point.
-    // Languages are added as tree-sitter-{lang} crates become available.
     match lang {
-        // Tier 1 — will add compiled grammars
-        Language::Rust
-        | Language::TypeScript
-        | Language::JavaScript
-        | Language::Python
-        | Language::Go
-        | Language::Java
-        | Language::C
-        | Language::Cpp => None, // placeholder — filled in Phase 2
+        Language::Rust       => Some(tree_sitter_rust::LANGUAGE.into()),
+        Language::Python     => Some(tree_sitter_python::LANGUAGE.into()),
+        Language::JavaScript => Some(tree_sitter_javascript::LANGUAGE.into()),
+        Language::TypeScript => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+        // Additional grammars can be linked here as needed
         _ => None,
     }
 }
 
-/// Parse source code into a tree-sitter tree.
+/// Parse source code into a CST using tree-sitter.
+/// Returns Ok(None) if no grammar is available for the language.
 pub fn parse(source: &str, lang: Language) -> Result<Option<tree_sitter::Tree>> {
     let Some(language) = get_language(lang) else {
         return Ok(None);

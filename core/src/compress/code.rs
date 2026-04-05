@@ -21,12 +21,92 @@ pub fn compress_code(content: &str, language: Language, level: CompressionLevel)
     heuristic_compress(content, language, level)
 }
 
-/// AST-based compression using tree-sitter (when grammar is available).
+/// AST-based compression using tree-sitter (surgical, byte-accurate).
+///
+/// Traverses the CST and folds function/method bodies at exact node boundaries.
+/// Falls back to heuristic if no grammar is available.
 fn try_ast_compress(content: &str, language: Language, level: CompressionLevel) -> Option<String> {
-    // Tree-sitter grammars will be linked in a future phase.
-    // For now, return None to fall through to heuristic mode.
-    let _ = (content, language, level);
-    None
+    let tree = crate::utils::treesitter::parse(content, language).ok()??;
+    let root = tree.root_node();
+    let source_bytes = content.as_bytes();
+
+    // Language-specific node types
+    let (fn_kind, body_field): (&str, &str) = match language {
+        Language::Rust       => ("function_item",       "body"),
+        Language::Python     => ("function_definition", "body"),
+        Language::JavaScript => ("function_declaration","body"),
+        Language::TypeScript => ("function_declaration","body"),
+        _ => return None,
+    };
+
+    // Collect (start_byte, end_byte, replacement) for each foldable body.
+    // We work on bytes so edits stay correct for multi-byte UTF-8.
+    let mut edits: Vec<(usize, usize, String)> = Vec::new();
+    collect_fn_edits(&root, fn_kind, body_field, source_bytes, level, &mut edits);
+
+    if edits.is_empty() {
+        return None; // Nothing to fold — let heuristic handle it
+    }
+
+    // Apply edits in reverse byte order so earlier offsets stay valid
+    edits.sort_by(|a, b| b.0.cmp(&a.0));
+
+    let mut result = content.as_bytes().to_vec();
+    for (start, end, replacement) in edits {
+        result.splice(start..end, replacement.into_bytes());
+    }
+
+    String::from_utf8(result).ok()
+}
+
+/// Recursively collect fold edits for all function nodes in the CST.
+fn collect_fn_edits(
+    node: &tree_sitter::Node,
+    fn_kind: &str,
+    body_field: &str,
+    source: &[u8],
+    level: CompressionLevel,
+    edits: &mut Vec<(usize, usize, String)>,
+) {
+    if node.kind() == fn_kind {
+        if let Some(body) = node.child_by_field_name(body_field) {
+            let body_text = &source[body.start_byte()..body.end_byte()];
+            let body_lines = body_text.iter().filter(|&&b| b == b'\n').count() + 1;
+
+            let fold = fold_decision(body_lines, level);
+            match fold {
+                FoldAction::Full => {} // keep as-is
+                FoldAction::Summary => {
+                    // Keep first 2 + last 1 lines of body, fold the middle
+                    let body_str = std::str::from_utf8(body_text).unwrap_or("");
+                    let lines: Vec<&str> = body_str.lines().collect();
+                    if lines.len() > 6 {
+                        let kept_head: Vec<&str> = lines.iter().take(3).cloned().collect();
+                        let kept_tail: Vec<&str> = lines.iter().rev().take(2).cloned().collect();
+                        let folded = lines.len() - 5;
+                        let replacement = format!(
+                            "{}\n    // ... {folded} lines folded ...\n{}",
+                            kept_head.join("\n"),
+                            kept_tail.into_iter().rev().collect::<Vec<_>>().join("\n")
+                        );
+                        edits.push((body.start_byte(), body.end_byte(), replacement));
+                    }
+                }
+                FoldAction::SignatureOnly => {
+                    // Fold entire body to one line with count
+                    let replacement = format!("{{ /* ... {body_lines} lines */ }}");
+                    edits.push((body.start_byte(), body.end_byte(), replacement));
+                }
+            }
+        }
+        // Don't recurse into nested functions — we handle top-level only
+        return;
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_fn_edits(&child, fn_kind, body_field, source, level, edits);
+    }
 }
 
 /// Heuristic-based code compression using regex/pattern matching.

@@ -1,7 +1,10 @@
+pub mod bench;
 pub mod compress;
 pub mod context;
 pub mod learning;
+pub mod mcp_server;
 pub mod quality;
+pub mod setup;
 pub mod utils;
 
 use serde::{Deserialize, Serialize};

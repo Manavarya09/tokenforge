@@ -240,6 +240,37 @@ impl Store {
         Ok(())
     }
 
+    /// Get recent compressed items for semantic diff comparison.
+    /// Returns (hash, decompressed_original) pairs, most recent first.
+    pub fn recent_compressed_items(
+        &self,
+        session_id: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT original_hash, original_content FROM content_store
+             WHERE session_id = ?1
+             ORDER BY id DESC LIMIT ?2",
+        )?;
+
+        let rows = stmt.query_map(params![session_id, limit as i64], |row| {
+            let hash: String = row.get(0)?;
+            let blob: Vec<u8> = row.get(1)?;
+            Ok((hash, blob))
+        })?;
+
+        let mut result = Vec::new();
+        for row in rows {
+            let (hash, blob) = row?;
+            if let Ok(decompressed) = zstd::decode_all(blob.as_slice()) {
+                if let Ok(text) = String::from_utf8(decompressed) {
+                    result.push((hash, text));
+                }
+            }
+        }
+        Ok(result)
+    }
+
     /// Get top accessed files for a project.
     pub fn top_files(&self, project_path: &str, limit: usize) -> Result<Vec<(String, i64)>> {
         let mut stmt = self.conn.prepare(

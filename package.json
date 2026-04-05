@@ -1,6 +1,6 @@
 {
   "name": "@masyv/tokenforge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TokenForge — Full-stack LLM token optimization engine. Compresses code, command output, conversation, JSON, and MCP schemas with AST-aware intelligence.",
   "main": "index.js",
   "bin": {},
