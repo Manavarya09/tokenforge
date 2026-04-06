@@ -194,6 +194,12 @@ fn truncate(s: &str, max: usize) -> String {
     if s.len() <= max {
         s.to_string()
     } else {
-        format!("{}...", &s[..max])
+        // Find a char boundary at or before `max` to avoid panicking on multi-byte UTF-8.
+        // Slicing directly at `max` will panic if it falls inside a multi-byte character.
+        let mut end = max;
+        while end > 0 && !s.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}...", &s[..end])
     }
 }
