@@ -196,7 +196,13 @@ fn trim_turn(turn: &Turn, level: CompressionLevel) -> String {
 fn summarize_turn(turn: &Turn) -> String {
     let first_line = turn.raw.lines().next().unwrap_or("");
     let truncated = if first_line.len() > 100 {
-        format!("{}...", &first_line[..100])
+        // Find a char boundary at or before 100 to avoid panicking on multi-byte UTF-8.
+        // Slicing directly at byte 100 will panic if it falls inside a multi-byte character.
+        let mut end = 100;
+        while end > 0 && !first_line.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}...", &first_line[..end])
     } else {
         first_line.to_string()
     };
