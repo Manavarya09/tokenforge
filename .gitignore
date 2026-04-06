@@ -1,7 +1,39 @@
-core/target/
+# Rust build artifacts
+**/target/
+**/*.rs.bk
+
+# SQLite databases (generated at runtime)
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+
+# Node / npm
+node_modules/
+*.tgz
+.npm/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment & secrets
+.env
+.env.*
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Editor / IDE
 *.swp
+*.swo
+*~
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.bak
