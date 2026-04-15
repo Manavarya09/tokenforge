@@ -271,6 +271,32 @@ impl Store {
         Ok(result)
     }
 
+    /// Get original content, compressed content, and metadata for a hash.
+    /// Returns (original, compressed, content_type, original_tokens, compressed_tokens).
+    pub fn get_compression_pair(
+        &self,
+        content_hash: &str,
+    ) -> Result<(String, String, String, usize, usize)> {
+        let (blob, compressed, content_type, orig_tok, comp_tok): (
+            Vec<u8>,
+            String,
+            String,
+            i64,
+            i64,
+        ) = self.conn.query_row(
+            "SELECT original_content, compressed_content, content_type, original_tokens, compressed_tokens
+             FROM content_store WHERE original_hash = ?1 ORDER BY id DESC LIMIT 1",
+            params![content_hash],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+        ).context("content not found for hash")?;
+
+        let decompressed = zstd::decode_all(blob.as_slice())
+            .context("zstd decompression failed")?;
+        let original = String::from_utf8(decompressed).context("content is not valid UTF-8")?;
+
+        Ok((original, compressed, content_type, orig_tok as usize, comp_tok as usize))
+    }
+
     /// Get top accessed files for a project.
     pub fn top_files(&self, project_path: &str, limit: usize) -> Result<Vec<(String, i64)>> {
         let mut stmt = self.conn.prepare(
