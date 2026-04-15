@@ -180,6 +180,19 @@ pub struct TypeStats {
     pub count: usize,
 }
 
+/// Result of diffing original vs compressed content.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiffResult {
+    pub hash: String,
+    pub unified_diff: String,
+    pub original_bytes: usize,
+    pub compressed_bytes: usize,
+    pub original_tokens: usize,
+    pub compressed_tokens: usize,
+    pub savings_pct: f64,
+    pub content_type: String,
+}
+
 /// Top-level engine.
 pub struct Engine {
     db_path: PathBuf,
@@ -294,6 +307,33 @@ impl Engine {
     pub fn expand(&self, content_hash: &str) -> anyhow::Result<String> {
         let store = context::store::Store::open(&self.db_path)?;
         store.get_original(content_hash)
+    }
+
+    /// Show diff between original and compressed content for a hash.
+    pub fn diff(&self, content_hash: &str) -> anyhow::Result<DiffResult> {
+        let store = context::store::Store::open(&self.db_path)?;
+        let (original, compressed, content_type, original_tokens, compressed_tokens) =
+            store.get_compression_pair(content_hash)?;
+
+        let patch = diffy::create_patch(&original, &compressed);
+        let unified_diff = patch.to_string();
+
+        let ratio = if original_tokens > 0 {
+            1.0 - (compressed_tokens as f64 / original_tokens as f64)
+        } else {
+            0.0
+        };
+
+        Ok(DiffResult {
+            hash: content_hash.to_string(),
+            unified_diff,
+            original_bytes: original.len(),
+            compressed_bytes: compressed.len(),
+            original_tokens,
+            compressed_tokens,
+            savings_pct: ratio * 100.0,
+            content_type,
+        })
     }
 }
 

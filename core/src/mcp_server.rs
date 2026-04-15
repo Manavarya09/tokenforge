@@ -172,6 +172,20 @@ impl McpServer {
                                 }
                             }
                         }
+                    },
+                    {
+                        "name": "tokenforge_diff",
+                        "description": "Show a unified diff between original and compressed content for a given hash. Highlights what was removed/changed during compression, with size and token stats.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "hash": {
+                                    "type": "string",
+                                    "description": "Blake3 hash returned from tokenforge_compress"
+                                }
+                            },
+                            "required": ["hash"]
+                        }
                     }
                 ]
             }
@@ -193,6 +207,7 @@ impl McpServer {
             "tokenforge_expand"   => self.tool_expand(&args),
             "tokenforge_stats"    => self.tool_stats(&args),
             "tokenforge_bench"    => self.tool_bench(&args),
+            "tokenforge_diff"     => self.tool_diff(&args),
             _ => (format!("Unknown tool: {name}"), true),
         };
 
@@ -294,6 +309,24 @@ impl McpServer {
                 }
             }
             Err(e) => (format!("Bench error: {e}"), true),
+        }
+    }
+
+    fn tool_diff(&self, args: &Value) -> (String, bool) {
+        let hash = match args.get("hash").and_then(Value::as_str) {
+            Some(h) => h,
+            None => return ("Missing required field: hash".to_string(), true),
+        };
+
+        let engine = Engine::new(self.db_path.clone());
+        match engine.diff(hash) {
+            Ok(result) => {
+                match serde_json::to_string_pretty(&result) {
+                    Ok(s) => (s, false),
+                    Err(e) => (format!("Serialization error: {e}"), true),
+                }
+            }
+            Err(e) => (format!("Diff error: {e}"), true),
         }
     }
 }

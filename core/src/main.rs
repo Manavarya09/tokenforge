@@ -115,6 +115,12 @@ enum Commands {
         hash: String,
     },
 
+    /// Show diff between original and compressed content
+    Diff {
+        /// Content hash
+        hash: String,
+    },
+
     /// Run as MCP server over stdio (JSON-RPC 2.0)
     Serve,
 
@@ -335,6 +341,30 @@ fn main() -> Result<()> {
             let engine = Engine::new(db_path);
             let original = engine.expand(&hash)?;
             print!("{original}");
+        }
+
+        Commands::Diff { hash } => {
+            let engine = Engine::new(db_path);
+            let result = engine.diff(&hash)?;
+
+            if cli.json {
+                println!("{}", serde_json::to_string_pretty(&result)?);
+            } else {
+                println!("Diff for hash: {}", result.hash);
+                println!("{}", "─".repeat(50));
+                println!("  Type:       {}", result.content_type);
+                println!(
+                    "  Original:   {} bytes, {} tokens",
+                    result.original_bytes, result.original_tokens
+                );
+                println!(
+                    "  Compressed: {} bytes, {} tokens",
+                    result.compressed_bytes, result.compressed_tokens
+                );
+                println!("  Savings:    {:.1}%", result.savings_pct);
+                println!("{}", "─".repeat(50));
+                print!("{}", result.unified_diff);
+            }
         }
 
         Commands::Serve => {
