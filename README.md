@@ -2,7 +2,9 @@
 
 **Full-stack LLM token optimization engine — the best in the world.** The first tool that compresses ALL token sources — code, command output, conversation, JSON, and MCP schemas — with _real_ AST parsing (tree-sitter grammars), semantic diff compression, a built-in MCP server, one-command auto-setup, and lossless reversibility.
 
-[![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/) [![License: MIT](https://img.shields.io/github/license/Manavarya09/tokenforge?color=0a0a0a)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/Manavarya09/tokenforge?style=flat&color=0a0a0a)](https://github.com/Manavarya09/tokenforge/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/Manavarya09/tokenforge?color=0a0a0a)](https://github.com/Manavarya09/tokenforge/commits/main)
 [![npm](https://img.shields.io/npm/v/@masyv/tokenforge)](https://www.npmjs.com/package/@masyv/tokenforge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
