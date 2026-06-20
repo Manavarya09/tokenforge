@@ -115,7 +115,7 @@ fn similarity(a: &str, b: &str) -> f64 {
     if a == b {
         return 1.0;
     }
-    let max_len = a.len().max(b.len());
+    let max_len = a.chars().count().max(b.chars().count());
     if max_len == 0 {
         return 1.0;
     }
